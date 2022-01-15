@@ -11,6 +11,7 @@ class DragableSheetController extends GetxController {
   var nearCenterStops = RxList<dynamic>();
 
   var selectedStop = RxMap<String, dynamic>();
+  var selectedStopRoutes = RxList<dynamic>();
 
   @override
   void onInit() {
@@ -22,7 +23,10 @@ class DragableSheetController extends GetxController {
     void updateNearStops() {
       nearCenterStops.value = [];
       for (final stop in _mapController.stopDB.value) {
-        if (stop['distanceToCenter'] < 500 && stop['name_zh_hk'] != null) {
+        List<dynamic> routes = stop['routeStops'];
+        if (stop['distanceToCenter'] < 500 &&
+            stop['name_zh_hk'] != null &&
+            routes.isNotEmpty) {
           nearCenterStops.value.add(stop);
         }
       }
@@ -63,5 +67,35 @@ class DragableSheetController extends GetxController {
     }
 
     return routes;
+  }
+
+  void onStopSelect(int index) {
+    selectedStop.value = nearCenterStops.value[index];
+    getRouteFromSelectedStop();
+  }
+
+  void onStopUnSelect() {
+    selectedStop.value = {};
+  }
+
+  void getRouteFromSelectedStop() {
+    List routes = [];
+    for (final route in selectedStop.value['routeStops']) {
+      if (route['route_unique_ID'] != null) {
+        routes.add(
+            _mapController.routeDB.value[route['route_unique_ID'].toString()]);
+      }
+    }
+    routes.sort((a, b) => a['routeName_zh_hk'].compareTo(b['routeName_zh_hk']));
+
+    selectedStopRoutes.value = routes;
+  }
+
+  String getDistanceString(double distance) {
+    if (distance / 1000 > 1) {
+      return (distance / 1000).toStringAsFixed(2) + "公里";
+    }
+
+    return distance.ceil().toString() + "米";
   }
 }

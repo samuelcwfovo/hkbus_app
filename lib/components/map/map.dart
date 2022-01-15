@@ -46,6 +46,9 @@ class MapState extends State<Map> {
               bottom: mapController.screenHeight.value *
                   mapController.dragableSheetRatio.value),
           markers: mapController.markers.value,
+          // markers: mapController.zoomLevel >= 14.5
+          //     ? mapController.allMarkers.value
+          //     : mapController.markers.value,
         ));
   }
 }

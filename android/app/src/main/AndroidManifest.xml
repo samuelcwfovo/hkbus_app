@@ -42,6 +42,10 @@
             android:value="AIzaSyCEmBt-keCQm9W3WJkBAMQtlb8H5msU_Vk"
         />
     </application>
+    
+    <queries>
+        <package android:name="com.google.android.apps.maps" />
+    </queries>
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>

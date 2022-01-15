@@ -35,12 +35,15 @@ class MapController extends GetxController {
   var markers = <Marker>{}.obs;
   var placeItems = <Place>[].obs;
   var clusterManager = Rxn<ClusterManager>();
-  var busIcon = Rxn<Uint8List>();
+  var busIcon = Rxn<BitmapDescriptor>();
+  // var allMarkers = <Marker>{}.obs;
 
   // DB realted
   var loadingDB = true.obs;
   var stopDB = RxList<dynamic>();
   var routeDB = RxMap<String, dynamic>();
+  var finalDB = RxMap<String, dynamic>();
+  var stopMapDB = RxMap<String, dynamic>();
 
   //api event
   StreamController<void> onDBLoadedStream = StreamController<void>.broadcast();
@@ -152,12 +155,15 @@ class MapController extends GetxController {
           position: cluster.location,
           icon: cluster.isMultiple
               ? await _getMarkerBitmap(75, cluster.count.toString())
-              : BitmapDescriptor.fromBytes(busIcon.value!));
+              : busIcon.value!);
     }
 
     clusterManager.value = ClusterManager<Place>(
         placeItems.value, updateMarkers,
-        markerBuilder: _markerBuilder);
+        markerBuilder: _markerBuilder,
+        levels: [1, 4.25, 6.75, 8.25, 12.5, 13.5, 14.5, 15.0, 20.0],
+        extraPercent: 0.1,
+        stopClusteringZoom: 14.5);
 
     onMapCreateStream.stream.listen((_controller) {
       clusterManager.value!.setMapId(_controller.mapId);
@@ -170,22 +176,31 @@ class MapController extends GetxController {
     onCameraIdleStream.stream.listen((_) {
       clusterManager.value!.updateMap();
     });
+
+    // onDBLoadedStream.stream.listen((_) {
+    //   allMarkers.value = stopDB.value
+    //       .map((stop) => Marker(
+    //           markerId: MarkerId(stop['id'].toString()),
+    //           position: LatLng(stop['lat'], stop['lng'])))
+    //       .toSet();
+    // });
   }
 
   void initStopDistanceUpdate() {
     void updateStopDistance() {
-      for (final stop in stopDB.value) {
+      for (final k in finalDB.value['stopList'].keys) {
+        var stop = finalDB.value['stopList'][k];
         double distanceToCenter = Geolocator.distanceBetween(
             mapCenterPosition.value!.latitude,
             mapCenterPosition.value!.longitude,
-            stop['lat'],
-            stop['lng']);
+            stop['location']['lat'],
+            stop['location']['lng']);
 
         double distanceToCurrent = Geolocator.distanceBetween(
             currentPosition.value!.latitude,
             currentPosition.value!.longitude,
-            stop['lat'],
-            stop['lng']);
+            stop['location']['lat'],
+            stop['location']['lng']);
 
         stop['distanceToCenter'] = distanceToCenter;
         stop['distanceToCurrent'] = distanceToCurrent;
@@ -210,20 +225,28 @@ class MapController extends GetxController {
           await rootBundle.loadString('lib/resources/map_dark.json'));
     });
 
-    busIcon.value = await getBytesFromAsset('lib/resources/bus_icon.jpg', 90);
+    busIcon.value = BitmapDescriptor.fromBytes(
+        await getBytesFromAsset('lib/resources/bus_icon.jpg', 90));
   }
 
   void fetchDB() async {
-    String stopURL =
-        'https://raw.githubusercontent.com/samuelcwfovo/BusETA_Crewer/main/stops.json';
-    String routeURL =
-        'https://raw.githubusercontent.com/samuelcwfovo/BusETA_Crewer/main/routes.json';
+    // String stopURL =
+    //     'https://raw.githubusercontent.com/samuelcwfovo/BusETA_Crewer/main/stops.json';
+    // String routeURL =
+    //     'https://raw.githubusercontent.com/samuelcwfovo/BusETA_Crewer/main/routes.json';
 
-    var stopResult = Dio().get(stopURL);
-    var routeResult = Dio().get(routeURL);
+    String finalDbURL =
+        'https://raw.githubusercontent.com/hkbus/hk-bus-crawling/gh-pages/routeFareList.json';
 
-    stopDB.value = jsonDecode((await stopResult).data);
-    routeDB.value = jsonDecode((await routeResult).data);
+    // var stopResult = Dio().get(stopURL);
+    // var routeResult = Dio().get(routeURL);
+    var finalDbResult = Dio().get(finalDbURL);
+
+    // stopDB.value = jsonDecode((await stopResult).data);
+    // routeDB.value = jsonDecode((await routeResult).data);
+    stopMapDB.value =
+        jsonDecode(await rootBundle.loadString('lib/resources/stop_map.json'));
+    finalDB.value = jsonDecode((await finalDbResult).data);
 
     loadingDB.value = false;
 
@@ -233,10 +256,21 @@ class MapController extends GetxController {
 
   void initPlaceItems() {
     onDBLoadedStream.stream.listen((_) {
-      var _placeItems = [
-        for (final stop in stopDB.value)
-          Place(latLng: LatLng(stop['lat'], stop['lng']))
-      ];
+      var _placeItems = <Place>[];
+      for (final k in finalDB.value['stopList'].keys) {
+        var stop = finalDB.value['stopList'][k];
+        if (k.length == 16) {
+          _placeItems.add(Place(
+              latLng:
+                  LatLng(stop['location']['lat'], stop['location']['lng'])));
+        } else {
+          if (!stopMapDB.value.containsKey(k)) {
+            _placeItems.add(Place(
+                latLng:
+                    LatLng(stop['location']['lat'], stop['location']['lng'])));
+          }
+        }
+      }
 
       clusterManager.value!.setItems(_placeItems);
     });

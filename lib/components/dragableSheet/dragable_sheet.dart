@@ -39,10 +39,9 @@ class DragableSheetState extends State<DragableSheet> {
             dragableSheetController.setScrollController(_scrollController);
             return (ClipRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.only(left: 20, right: 20, top: 10),
                   decoration: const BoxDecoration(
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
@@ -170,8 +169,7 @@ class RouteTabView extends StatelessWidget {
         itemCount: dragableSheetController.nearCenterStops.value.length,
         itemBuilder: (context, index) {
           return GestureDetector(
-            onTap: () => dragableSheetController.selectedStop.value =
-                dragableSheetController.nearCenterStops.value[index],
+            onTap: () => dragableSheetController.onStopSelect(index),
             child: Container(
               margin: const EdgeInsets.only(top: 5, bottom: 5),
               padding:
@@ -188,19 +186,20 @@ class RouteTabView extends StatelessWidget {
                     children: [
                       Container(
                         margin: const EdgeInsets.only(top: 2, bottom: 5),
-                        child: Text(
-                          dragableSheetController.nearCenterStops.value[index]
-                              ['name_zh_hk'],
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 14),
+                        child: SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          child: Text(
+                            dragableSheetController.nearCenterStops.value[index]
+                                ['name_zh_hk'],
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 14),
+                          ),
                         ),
                       ),
                       Text(
-                        dragableSheetController.nearCenterStops
-                                .value[index]['distanceToCurrent']
-                                .ceil()
-                                .toString() +
-                            "米",
+                        dragableSheetController.getDistanceString(
+                            dragableSheetController.nearCenterStops.value[index]
+                                ['distanceToCurrent']),
                         style:
                             const TextStyle(color: Colors.white, fontSize: 10),
                       )
@@ -248,44 +247,106 @@ class StopDetailView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => {
-        dragableSheetController.selectedStop.value = <String, dynamic>{},
-        log(dragableSheetController.selectedStop.value.toString())
-      },
-      child: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Icon(
+    return Column(
+      children: [
+        Container(
+          margin: const EdgeInsets.only(top: 10, bottom: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () => dragableSheetController.onStopUnSelect(),
+                child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
                   color: Colors.white,
                 ),
-                Text(
+              ),
+              Flexible(
+                child: Text(
                   dragableSheetController.selectedStop.value['name_zh_hk'],
                   style: const TextStyle(color: Colors.white, fontSize: 20),
                 ),
+              ),
 
-                //to Make Text Center
-                const Visibility(
-                  visible: false,
-                  maintainSize: true,
-                  maintainState: true,
-                  maintainAnimation: true,
-                  child: Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white,
-                  ),
-                )
-              ],
-            ),
+              //to Make Text Center
+              const Visibility(
+                visible: false,
+                maintainSize: true,
+                maintainState: true,
+                maintainAnimation: true,
+                child: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white,
+                ),
+              )
+            ],
           ),
-        ],
-      ),
+        ),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(top: 5),
+            // padding:
+            //     const EdgeInsets.only(top: 5, bottom: 5, left: 8, right: 8),
+            decoration: const BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(5), topRight: Radius.circular(5))),
+            child: ListView.builder(
+                padding: const EdgeInsets.only(top: 0, bottom: 0),
+                controller: dragableSheetController.sheetScrollController.value,
+                itemCount:
+                    dragableSheetController.selectedStopRoutes.value.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    padding: const EdgeInsets.only(
+                        top: 10, bottom: 10, left: 10, right: 15),
+                    decoration: const BoxDecoration(
+                        border: Border(
+                            bottom:
+                                BorderSide(color: Colors.white, width: 0.25))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dragableSheetController.selectedStopRoutes
+                                    .value[index]['routeName_zh_hk'],
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                dragableSheetController.selectedStopRoutes
+                                    .value[index]['endLocationName_zh_hk'],
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 14),
+                              ),
+                              Text(
+                                dragableSheetController.selectedStopRoutes
+                                    .value[index]['endLocationName_en_us'],
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 14),
+                              )
+                            ],
+                          ),
+                        ),
+                        const Text(
+                          '10min',
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        )
+                      ],
+                    ),
+                  );
+                }),
+          ),
+        )
+      ],
     );
   }
 }

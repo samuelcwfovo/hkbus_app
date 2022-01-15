@@ -64,6 +64,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - lib/resources/routeFareList.json
+    - lib/resources/stop_map.json
     - lib/resources/map_dark.json
     - lib/resources/bus_icon.jpg
 
